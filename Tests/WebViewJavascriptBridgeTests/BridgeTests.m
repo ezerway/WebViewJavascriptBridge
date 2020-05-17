@@ -15,12 +15,11 @@ static NSString *const echoHandler = @"echoHandler";
 
 @interface BridgeTests : XCTestCase
 @end
-@interface TestWebPageLoadDelegate : NSObject<UIWebViewDelegate, WKNavigationDelegate>
+@interface TestWebPageLoadDelegate : NSObject<WKNavigationDelegate>
 @property XCTestExpectation* expectation;
 @end
 
 @implementation BridgeTests {
-    UIWebView *_uiWebView;
     WKWebView *_wkWebView;
     NSMutableArray* _retains;
 }
@@ -30,11 +29,6 @@ static NSString *const echoHandler = @"echoHandler";
     
     UIViewController *rootVC = [[(AppDelegate *)[[UIApplication sharedApplication] delegate] window] rootViewController];
     CGRect frame = rootVC.view.bounds;
-    frame.size.height /= 2;
-    _uiWebView = [[UIWebView alloc] initWithFrame:frame];
-    _uiWebView.backgroundColor = [UIColor blueColor];
-    [rootVC.view addSubview:_uiWebView];
-    frame.origin.y += frame.size.height;
     _wkWebView = [[WKWebView alloc] initWithFrame:frame];
     _wkWebView.backgroundColor = [UIColor redColor];
     [rootVC.view addSubview:_wkWebView];
@@ -44,8 +38,12 @@ static NSString *const echoHandler = @"echoHandler";
 
 - (void)tearDown {
     [super tearDown];
-    [_uiWebView removeFromSuperview];
     [_wkWebView removeFromSuperview];
+}
+
+static void loadEchoSample(id webView) {
+    NSURLRequest *request = [NSURLRequest requestWithURL:[[NSBundle mainBundle] URLForResource:@"echo" withExtension:@"html"]];
+    [(WKWebView*)webView loadRequest:request];
 }
 
 - (WebViewJavascriptBridge*)bridgeForWebView:(id)webView {
@@ -54,15 +52,9 @@ static NSString *const echoHandler = @"echoHandler";
     return bridge;
 }
 
-static void loadEchoSample(id webView) {
-    NSURLRequest *request = [NSURLRequest requestWithURL:[[NSBundle mainBundle] URLForResource:@"echo" withExtension:@"html"]];
-    [(UIWebView*)webView loadRequest:request];
-}
-
 const NSTimeInterval timeoutSec = 5;
 
 - (void)testEchoHandler {
-    [self classSpecificTestEchoHandler:_uiWebView];
     [self classSpecificTestEchoHandler:_wkWebView];
     [self waitForExpectationsWithTimeout:timeoutSec handler:NULL];
 }
@@ -79,7 +71,6 @@ const NSTimeInterval timeoutSec = 5;
 }
 
 - (void)testEchoHandlerAfterSetup {
-    [self classSpecificTestEchoHandlerAfterSetup:_uiWebView];
     [self classSpecificTestEchoHandlerAfterSetup:_wkWebView];
     [self waitForExpectationsWithTimeout:timeoutSec handler:NULL];
 }
@@ -97,7 +88,6 @@ const NSTimeInterval timeoutSec = 5;
 }
 
 - (void)testObjectEncoding {
-    [self classSpecificTestObjectEncoding:_uiWebView];
     [self classSpecificTestObjectEncoding:_wkWebView];
     [self waitForExpectationsWithTimeout:timeoutSec handler:NULL];
 }
@@ -121,7 +111,6 @@ const NSTimeInterval timeoutSec = 5;
 }
 
 - (void)testJavascriptReceiveResponse {
-    [self classSpecificTestJavascriptReceiveResponse:_uiWebView];
     [self classSpecificTestJavascriptReceiveResponse:_wkWebView];
     [self waitForExpectationsWithTimeout:timeoutSec handler:NULL];
 }
@@ -139,7 +128,6 @@ const NSTimeInterval timeoutSec = 5;
 }
 
 - (void)testJavascriptReceiveResponseWithoutSafetyTimeout {
-    [self classSpecificTestJavascriptReceiveResponseWithoutSafetyTimeout:_uiWebView];
     [self classSpecificTestJavascriptReceiveResponseWithoutSafetyTimeout:_wkWebView];
     [self waitForExpectationsWithTimeout:timeoutSec handler:NULL];
 }
@@ -158,7 +146,6 @@ const NSTimeInterval timeoutSec = 5;
 }
 
 - (void)testWebpageLoad {
-    [self classSpecificTestWebpageLoad:_uiWebView];
     [self classSpecificTestWebpageLoad:_wkWebView];
     [self waitForExpectationsWithTimeout:timeoutSec handler:NULL];
 }
@@ -169,14 +156,11 @@ const NSTimeInterval timeoutSec = 5;
     [_retains addObject:delegate];
     [bridge setWebViewDelegate:delegate];
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:@"https://example.com"]];
-    [(UIWebView*)webView loadRequest:request];
+    [(WKWebView*)webView loadRequest:request];
 }
 @end
 
 @implementation TestWebPageLoadDelegate
-- (void)webViewDidFinishLoad:(UIWebView *)webView {
-    [self.expectation fulfill];
-}
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     [self.expectation fulfill];
 }
